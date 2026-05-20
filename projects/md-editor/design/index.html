@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyMD - 跨平台 Markdown 编辑器 设计稿</title>
+    <style>
+        :root {
+            --primary: #FF6B00;
+            --primary-hover: #FF8533;
+            --bg-main: #0D0D0D;
+            --bg-sidebar: #141414;
+            --bg-panel: #1A1A1A;
+            --border: #2D2D2D;
+            --text-primary: #E8E8E8;
+            --text-secondary: #888888;
+            --success: #00C853;
+            --code-bg: #1E1E1E;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans', 'Source Han Sans CN', sans-serif;
+            background: #0a0a0a;
+            color: var(--text-primary);
+        }
+
+        /* Main Screen Layout */
+        .main-screen {
+            width: 1440px;
+            height: 900px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Title Bar */
+        .title-bar {
+            height: 32px;
+            background: var(--bg-sidebar);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .title-bar h1 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .title-bar span {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            height: 36px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .tab {
+            height: 28px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+            background: rgba(255, 107, 0, 0.15);
+        }
+
+        .tab:not(.active) {
+            color: var(--text-secondary);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            display: flex;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            height: 40px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header span {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .sidebar-header .add-btn {
+            font-size: 18px;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .file-tree {
+            flex: 1;
+            padding: 8px;
+            overflow-y: auto;
+        }
+
+        .folder {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 8px 8px 24px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .file-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .file-item.active {
+            background: rgba(255, 107, 0, 0.15);
+            color: var(--primary);
+        }
+
+        .file-item .icon {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .file-item.active .icon {
+            color: var(--primary);
+        }
+
+        /* Editor Area */
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            height: 40px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 4px;
+        }
+
+        .toolbar-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .toolbar-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .toolbar-spacer {
+            flex: 1;
+        }
+
+        .export-btn {
+            height: 28px;
+            padding: 0 12px;
+            background: var(--primary);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        /* Editor Content */
+        .editor-content {
+            flex: 1;
+            background: var(--bg-main);
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .md-content {
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .md-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .md-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .md-paragraph {
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .md-h2 {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border-radius: 6px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .code-block .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .code-block .code {
+            font-size: 13px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            height: 24px;
+            background: var(--bg-sidebar);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            gap: 16px;
+        }
+
+        .status-spacer {
+            flex: 1;
+        }
+
+        .save-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .save-status .dot {
+            font-size: 8px;
+            color: var(--success);
+        }
+
+        /* Panels (Export & Settings) */
+        .panel {
+            position: fixed;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-header {
+            height: 48px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-header .close {
+            font-size: 18px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .panel-content {
+            padding: 16px;
+        }
+
+        .export-panel {
+            width: 320px;
+            top: 200px;
+            right: 100px;
+        }
+
+        .settings-panel {
+            width: 380px;
+            top: 100px;
+            right: 100px;
+        }
+
+        .export-option {
+            height: 44px;
+            background: var(--bg-main);
+            border-radius: 6px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+
+        .export-option:hover {
+            background: #1a1a1a;
+        }
+
+        .export-option span {
+            font-size: 13px;
+        }
+
+        .export-option .arrow {
+            color: var(--primary);
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .settings-section p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-option {
+            font-size: 12px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+
+        .theme-option.active {
+            color: var(--primary);
+        }
+
+        .theme-option:not(.active) {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Editor Screen -->
+    <div class="main-screen">
+        <!-- Title Bar -->
+        <div class="title-bar">
+            <h1>MyMD</h1>
+            <span>— 跨平台 Markdown 编辑器</span>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+            <div class="tab active">产品需求文档.md</div>
+            <div class="tab">会议记录.md</div>
+            <div class="tab">技术方案.md</div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <span>文件</span>
+                    <span class="add-btn">+</span>
+                </div>
+                <div class="file-tree">
+                    <div class="folder">
+                        <span>📁</span>
+                        <span>工作</span>
+                    </div>
+                    <div class="file-item active">
+                        <span class="icon">📄</span>
+                        <span>产品需求文档.md</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="icon">📄</span>
+                        <span>会议记录.md</span>
+                    </div>
+                    <div class="file-item">
+                        <span class="icon">📄</span>
+                        <span>技术方案.md</span>
+                    </div>
+                    <div class="folder">
+                        <span>📁</span>
+                        <span>个人</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor Area -->
+            <div class="editor-area">
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="toolbar-btn">B</div>
+                    <div class="toolbar-btn">I</div>
+                    <div class="toolbar-btn">H1</div>
+                    <div class="toolbar-btn">H2</div>
+                    <div class="toolbar-btn">🔗</div>
+                    <div class="toolbar-btn">📷</div>
+                    <div class="toolbar-btn">📊</div>
+                    <div class="toolbar-btn">&lt;/&gt;</div>
+                    <div class="toolbar-spacer"></div>
+                    <div class="export-btn">导出</div>
+                </div>
+
+                <!-- Editor Content -->
+                <div class="editor-content">
+                    <div class="md-content">
+                        <div class="md-title">产品需求文档</div>
+                        <div class="md-meta">
+                            <span>作者: 产品经理</span>
+                            <span>更新: 2026-05-20</span>
+                        </div>
+                        <div class="md-paragraph">
+                            这是一个关于跨平台 Markdown 编辑器的需求文档。核心功能包括即时渲染、代码高亮、Mermaid 图表支持。
+                        </div>
+                        <div class="md-h2">技术架构</div>
+                        <div class="code-block">
+                            <span class="label">技术栈:</span>
+                            <span class="code">• Tauri 2.x (跨平台桌面)</span>
+                            <span class="code">• React 18 (UI框架)</span>
+                            <span class="code">• markdown-it (Markdown解析)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span>Ln 1, Col 1</span>
+            <span>UTF-8</span>
+            <span>Markdown</span>
+            <span class="status-spacer"></span>
+            <div class="save-status">
+                <span class="dot">●</span>
+                <span>已保存</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Panel -->
+    <div class="panel export-panel">
+        <div class="panel-header">
+            <h2>导出文档</h2>
+            <span class="close">×</span>
+        </div>
+        <div class="panel-content">
+            <div class="export-option">
+                <span>PDF</span>
+                <span class="arrow">→</span>
+            </div>
+            <div class="export-option">
+                <span>HTML</span>
+                <span class="arrow">→</span>
+            </div>
+            <div class="export-option">
+                <span>Word (.docx)</span>
+                <span class="arrow">→</span>
+            </div>
+            <div class="export-option">
+                <span>EPUB</span>
+                <span class="arrow">→</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="panel settings-panel">
+        <div class="panel-header">
+            <h2>设置</h2>
+            <span class="close">×</span>
+        </div>
+        <div class="panel-content">
+            <div class="settings-section">
+                <h3>外观</h3>
+                <div class="theme-options">
+                    <span class="theme-option active">深色</span>
+                    <span class="theme-option">浅色</span>
+                </div>
+            </div>
+            <div class="settings-section">
+                <h3>字体</h3>
+                <p>思源黑体 / Noto Sans</p>
+            </div>
+            <div class="settings-section">
+                <h3>字号</h3>
+                <p>14px</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

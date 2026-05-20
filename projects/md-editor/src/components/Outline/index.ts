@@ -1,0 +1,1 @@
+export { OutlineView, useActiveHeading } from './OutlineView';

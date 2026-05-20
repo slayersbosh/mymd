@@ -1,0 +1,1 @@
+export { SearchPanel, useSearchShortcut } from './SearchPanel';
